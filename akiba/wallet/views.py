@@ -1,55 +1,61 @@
 from base64 import b64decode, encode,b64encode
-from sqlite3 import Timestamp
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
 import requests
 from datetime import datetime
 import json
+from .models import Account
+from .utils import *
+from .serializers import *
 
-class HelloView(APIView):
+
+class Account(APIView):
     permission_classes = (IsAuthenticated,)
+    def post(self,request):
+        serialized = AccountSerializer(data=request.data) 
+        user  = request.user  
+        if serialized.is_valid():
+            try:
+                Account.objects.create(
+                    user = user,
+                    account_no = serialized.data['account_no'],
+                )
+                return Response(serialized.data, status=status.HTTP_201_CREATED)
+            except:
+                return Response("Account already exists",status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serialized._errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self,request):
-        content = {'message' : 'Hello'}
-        return Response(content)
-    
+
 class Deposit(APIView):
     permission_classes = (IsAuthenticated,)
     def get(self,request):
-        response = requests.request("POST","https://882c-102-140-246-229.ngrok.io/wallet/result")
-        print("callback")
-        print(response.text)
-        return Response
+        try:
+            user = request.user
+            account = Account.objects.get(user=user)
+            res = {
+                'name':user.username,
+                'balance':account.balance,
+                'phone':account.phone,
+            }
+            return Response(res,status=200)
+        except:
+            return Response('Error',status=400)
 
 
     def post(self,request):
-        amount = request.data.get('amount')
-        consumer_key = "DBKT6n6IXsxGt1vwueGB1pygGrlII1PX"
-        consumer_secret =  "jGJA828Jt97lP9k0"
-        key_secret = consumer_key+":"+consumer_secret
-
-        bytes = key_secret.encode('ascii')
-        b64_bytes = b64encode(bytes)
-        b64_token = b64_bytes.decode('ascii')
         
-        # raise Exception()
-        auth_url = "https://sandbox.safaricom.co.ke/oauth/v1/generate"
-        querystring = {"grant_type":"client_credentials"}
-        payload = ""
-        headers = {
-            "Authorization": f"Basic {b64_token}"
-        }
-        response = requests.request("GET", auth_url, data=payload, headers=headers, params=querystring)
-        # print(response.text)
-       
+        amount = request.data.get('amount')
+        
+        token = get_mpesa_auth_token()
+        if not type(token)==str:
+            return Response(status=status.HTTP_400_BAD_REQUEST,data={'message':'Auth Error'})
+        
         content = {
             'amount':amount,
-            'response': response.text
         }
-        token = json.loads(response.text)['access_token']
-        # print(token)
-        
         url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         code = "174379"
@@ -71,7 +77,7 @@ class Deposit(APIView):
             "PartyA": phone,
             "PartyB": code,
             "PhoneNumber": phone,
-            "CallBackURL": "https://382e-102-140-246-229.ngrok.io/wallet/result",
+            "CallBackURL": "https://382e-102-140-246-229.ngrok.io",
             "AccountReference": phone,
             "TransactionDesc": "Akiba Pay"
         }
