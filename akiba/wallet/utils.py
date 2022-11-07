@@ -1,6 +1,7 @@
 from base64 import b64encode
 import requests
 import json
+import re
 
 def get_mpesa_auth_token():
     try:
@@ -28,6 +29,15 @@ def get_mpesa_auth_token():
             return token
         else:
             return ''
-        
     except Exception as e:
         return e
+        
+def format_phone_no(phone):
+    # remove special chars 
+    phone = re.sub(r'[^0-9]', '', phone)
+
+    # append correct country code
+    if phone[0] == '0':
+        phone = '254'+phone[1:]
+
+    return phone

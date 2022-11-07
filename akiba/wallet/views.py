@@ -9,47 +9,53 @@ import json
 from .models import Account
 from .utils import *
 from .serializers import *
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class Account(APIView):
+    # check jwt token
     permission_classes = (IsAuthenticated,)
+
+    # create new account
     def post(self,request):
-        serialized = AccountSerializer(data=request.data) 
+        # serialize request data to object
+        serializer = AccountSerializer(data=request.data) 
         user  = request.user 
 
-        if serialized.is_valid():
+        # check request data is valid
+        if serializer.is_valid():
             try:
-                account = Account(
-                    user = user,
-                    account_no = serialized.data['account_no'],
-                )
-                
-                return Response(serialized.data, status=status.HTTP_201_CREATED)
+                serializer.save(user=user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 print(e)
-                return Response("Account already exists",status=status.HTTP_400_BAD_REQUEST)
+                return Response({"message":"Account already exists"},status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response(serialized._errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer._errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class Deposit(APIView):
-    permission_classes = (IsAuthenticated,)
+    # get account details
     def get(self,request):
-        try:
-            user = request.user
+        user = request.user
+        try:        
             account = Account.objects.get(user=user)
             res = {
+                'message':'User retrieved',
                 'name':user.username,
                 'balance':account.balance,
                 'phone':account.phone,
             }
-            return Response(res,status=200)
+            return Response(res,status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            return Response({'message':'User Account Not Found'},status=status.HTTP_400_BAD_REQUEST)
         except:
-            return Response('Error',status=400)
+            return Response({'message':'Error retrieving user'},status=status.HTTP_400_BAD_REQUEST)
 
 
-    def post(self,request):
-        
+class Deposit(APIView):
+    # check jwt token
+    permission_classes = (IsAuthenticated,)
+    
+    def post(self,request):        
         amount = request.data.get('amount')
          
         # get auth token with consumer secret and password        
@@ -57,26 +63,26 @@ class Deposit(APIView):
         if not type(token)==str:
             return Response(status=status.HTTP_400_BAD_REQUEST,data={'message':'Authentication Error'})
         
-        content = {
-            'amount':amount,
-        }
         url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
 
+        # stk push request body
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         code = "174379"
         key = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
         phone = "254716537782"
-
+        
+        # pwd + passkey + timestamp to base64
         pwd = code+key+timestamp
         pwd_bytes = pwd.encode('ascii')
         pwd_b64_bytes = b64encode(pwd_bytes)
         b64_pwd = pwd_b64_bytes.decode('ascii')
+
         payload = {
             "BusinessShortCode": code,
             "Password": b64_pwd,
             "Timestamp": timestamp,
             "TransactionType": "CustomerPayBillOnline",
-            "Amount": "1",
+            "Amount": amount,
             "PartyA": phone,
             "PartyB": code,
             "PhoneNumber": phone,
@@ -87,12 +93,16 @@ class Deposit(APIView):
         headers = {
             "Authorization": f"Bearer {token}",
         }
+
+        # stk push request
         response = requests.request("POST", url, json=payload, headers=headers)
-        
-        return Response(content)
+        if response.status_code == 200:
+            return Response({"message":"Success"})
+        else:
+            return Response({"message":"Error"},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class MpesaCallback(APIView):
+class ResultCallback(APIView):
     def post(self,request):
         print("-------call back called--------------")
         
