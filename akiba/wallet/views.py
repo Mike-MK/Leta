@@ -50,15 +50,18 @@ class Deposit(APIView):
 
     def post(self,request):
         
-        amount = request.data.get('amount')       
+        amount = request.data.get('amount')
+         
+        # get auth token with consumer secret and password        
         token = get_mpesa_auth_token()
         if not type(token)==str:
-            return Response(status=status.HTTP_400_BAD_REQUEST,data={'message':'Auth Error'})
+            return Response(status=status.HTTP_400_BAD_REQUEST,data={'message':'Authentication Error'})
         
         content = {
             'amount':amount,
         }
         url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         code = "174379"
         key = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"
@@ -68,8 +71,6 @@ class Deposit(APIView):
         pwd_bytes = pwd.encode('ascii')
         pwd_b64_bytes = b64encode(pwd_bytes)
         b64_pwd = pwd_b64_bytes.decode('ascii')
-        print(b64_pwd)
-        # raise Exception()
         payload = {
             "BusinessShortCode": code,
             "Password": b64_pwd,
@@ -79,7 +80,7 @@ class Deposit(APIView):
             "PartyA": phone,
             "PartyB": code,
             "PhoneNumber": phone,
-            "CallBackURL": "https://b924-102-140-246-229.ngrok.io/wallet/result/",
+            "CallBackURL": "https://a294-197-232-124-42.ngrok.io:80/wallet/result/",
             "AccountReference": phone,
             "TransactionDesc": "Akiba Pay"
         }
@@ -87,8 +88,7 @@ class Deposit(APIView):
             "Authorization": f"Bearer {token}",
         }
         response = requests.request("POST", url, json=payload, headers=headers)
-        print(response.text)
-        # raise Exception()
+        
         return Response(content)
 
 
