@@ -10,7 +10,8 @@ Users can create accounts linked to their mobile numbers and deposit money via M
   - Django 4.1.3 (Recommended)
   
 ## API Endpoints
-  - /auth/api/token/ ==get jwt==
+  - /auth/api/token/
+    : get jwt
     - method: post 
     - body: username, password
   - /auth/api/token/refresh/ 
