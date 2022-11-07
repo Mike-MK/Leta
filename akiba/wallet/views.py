@@ -104,6 +104,6 @@ class Deposit(APIView):
 
 class ResultCallback(APIView):
     def post(self,request):
-        print("-------call back called--------------")
+        # Handle callback
         
         return Response("Transaction successful",status=status.HTTP_202_ACCEPTED)
