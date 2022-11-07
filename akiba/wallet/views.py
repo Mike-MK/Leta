@@ -15,15 +15,18 @@ class Account(APIView):
     permission_classes = (IsAuthenticated,)
     def post(self,request):
         serialized = AccountSerializer(data=request.data) 
-        user  = request.user  
+        user  = request.user 
+
         if serialized.is_valid():
             try:
-                Account.objects.create(
+                account = Account(
                     user = user,
                     account_no = serialized.data['account_no'],
                 )
+                
                 return Response(serialized.data, status=status.HTTP_201_CREATED)
-            except:
+            except Exception as e:
+                print(e)
                 return Response("Account already exists",status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response(serialized._errors, status=status.HTTP_400_BAD_REQUEST)
@@ -47,8 +50,7 @@ class Deposit(APIView):
 
     def post(self,request):
         
-        amount = request.data.get('amount')
-        
+        amount = request.data.get('amount')       
         token = get_mpesa_auth_token()
         if not type(token)==str:
             return Response(status=status.HTTP_400_BAD_REQUEST,data={'message':'Auth Error'})
@@ -77,7 +79,7 @@ class Deposit(APIView):
             "PartyA": phone,
             "PartyB": code,
             "PhoneNumber": phone,
-            "CallBackURL": "https://382e-102-140-246-229.ngrok.io",
+            "CallBackURL": "https://b924-102-140-246-229.ngrok.io/wallet/result/",
             "AccountReference": phone,
             "TransactionDesc": "Akiba Pay"
         }
@@ -93,4 +95,5 @@ class Deposit(APIView):
 class MpesaCallback(APIView):
     def post(self,request):
         print("-------call back called--------------")
-        return Response("Callback called")
+        
+        return Response("Transaction successful",status=status.HTTP_202_ACCEPTED)

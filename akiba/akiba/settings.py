@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-zixmr2nj3oo_0%o0w=d6^8u^s3rnqpw%6)25juf7=13xr!6mt@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['382e-102-140-246-229.ngrok.io','127.0.0.1']
+ALLOWED_HOSTS = ['b924-102-140-246-229.ngrok.io','127.0.0.1','localhost']
 
 
 # Application definition
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'wallet',
 ]
 
@@ -49,7 +50,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'akiba.urls'
 

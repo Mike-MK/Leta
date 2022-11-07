@@ -3,6 +3,7 @@ from .models import *
 
 class AccountSerializer(serializers.ModelSerializer):
     account_no = serializers.CharField(max_length=20)
+    print('sef',account_no)
 
     def validate_account_no(self, value):
         if len(value) < 12:
